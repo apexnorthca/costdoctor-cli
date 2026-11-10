@@ -1,5 +1,12 @@
 # costdoctor
 
+[![Release](https://img.shields.io/github/v/release/apexnorthca/costdoctor-cli?color=ff9d52)](https://github.com/apexnorthca/costdoctor-cli/releases/latest)
+[![Homebrew](https://img.shields.io/badge/brew-apexnorthca%2Ftap%2Fcostdoctor-ff9d52?logo=homebrew&logoColor=white)](https://github.com/apexnorthca/homebrew-tap)
+[![macOS 13+](https://img.shields.io/badge/macOS-13%2B-2a1407?logo=apple&logoColor=white)](#install-without-homebrew)
+[![Signed and notarized](https://img.shields.io/badge/Apple-notarized-2a1407?logo=apple&logoColor=white)](https://github.com/apexnorthca/costdoctor-cli/releases/latest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-2a1407)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/apexnorthca/costdoctor-cli?style=flat&color=ff9d52)](https://github.com/apexnorthca/costdoctor-cli/stargazers)
+
 See where your **Claude Code** and **Codex** tokens go, and when you will hit your plan limit. A free command for macOS. It reads the logs both tools already keep on your Mac, and nothing is uploaded.
 
 ```bash
