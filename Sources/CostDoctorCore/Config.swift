@@ -21,12 +21,28 @@ struct Config {
     var pushURL = ""                     // phone alerts: an ntfy topic, a Slack webhook, or any address taking a JSON post
     var stallMinutes = 10                // a session idle this long on an error is reported
     /// $ per million tokens: input, cache write, cache read, output. List-price estimate only.
-    var prices: [String: [Double]] = [
-        "opus": [15, 18.75, 1.5, 75],
-        "sonnet": [3, 3.75, 0.3, 15],
-        "haiku": [1, 1.25, 0.1, 5],
-        "gpt": [1.25, 1.25, 0.125, 10],     // rough placeholder for Codex models; edit to your real rates
-        "default": [15, 18.75, 1.5, 75],
+    /// A model is priced by the longest key its name contains, so "claude-opus-5-5" uses "opus-5-5", not "opus".
+    /// Bare names ("opus", "fable") are what the tools log for "the current one", so they carry the newest price.
+    /// From Anthropic's and OpenAI's published API prices, checked 2026-11-10.
+    var prices: [String: [Double]] = Config.listPrices
+
+    static let listPrices: [String: [Double]] = [
+        "fable-5-2": [8, 10, 0.2, 40], "fable-5-1": [10, 12.5, 0.25, 50], "fable": [8, 10, 0.2, 40],
+        "mythos-5-1": [10, 12.5, 0.25, 50], "mythos": [8, 10, 0.2, 40],
+        "opus-5-5": [4, 5, 0.2, 20], "opus-5": [5, 6.25, 0.5, 25], "opus-4": [5, 6.25, 0.5, 25],
+        "opus-4-1": [15, 18.75, 1.5, 75], "opus": [4, 5, 0.2, 20],
+        "sonnet-5-5": [2, 2.5, 0.1, 10], "sonnet-5": [2, 2.5, 0.2, 10], "sonnet-4": [3, 3.75, 0.3, 15], "sonnet": [2, 2.5, 0.1, 10],
+        "haiku-5-5": [0.1, 0.125, 0.01, 0.5], "haiku-4": [1, 1.25, 0.1, 5], "haiku": [0.1, 0.125, 0.01, 0.5],
+        // Codex. OpenAI has no separate cache-write price, so that slot repeats the input price.
+        "gpt-6.1-sol": [2, 2, 0.1, 10], "gpt-6.1-terra": [1, 1, 0.05, 5], "gpt-6-astra": [10, 10, 1, 50],
+        "gpt-6-sol": [2, 2, 0.2, 10], "gpt-6-luna": [0.1, 0.1, 0.01, 0.5], "gpt": [2, 2, 0.1, 10],
+        "default": [8, 10, 0.2, 40],
+    ]
+    /// The table shipped before 2026-11-10. A settings file that still holds one of these never chose it, so it is
+    /// not treated as the person's own rate.
+    static let legacyPrices: [String: [Double]] = [
+        "opus": [15, 18.75, 1.5, 75], "sonnet": [3, 3.75, 0.3, 15], "haiku": [1, 1.25, 0.1, 5],
+        "gpt": [1.25, 1.25, 0.125, 10], "default": [15, 18.75, 1.5, 75],
     ]
 
     static let dir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".costdoctor")
@@ -62,7 +78,7 @@ struct Config {
         if let v = d["waitMinutes"] as? Int { c.waitMinutes = v }
         if let v = d["pushURL"] as? String { c.pushURL = v }
         if let v = d["stallMinutes"] as? Int { c.stallMinutes = v }
-        if let v = d["prices"] as? [String: [Double]] { for (k, p) in v where p.count == 4 { c.prices[k] = p } }
+        if let v = d["prices"] as? [String: [Double]] { for (k, p) in v where p.count == 4 && Config.legacyPrices[k] != p { c.prices[k] = p } }
         Config.adjust?(&c)
         return c
     }
@@ -72,7 +88,9 @@ struct Config {
             "dailyBudget": dailyBudget, "historyCeiling": historyCeiling, "floorWarning": floorWarning,
             "redBorder": redBorder, "watchGitHub": watchGitHub, "watchClaude": watchClaude, "watchCodex": watchCodex,
             "notifications": notifications, "menuBarDollars": menuBarDollars, "menuBarLimit": menuBarLimit, "claudeLimits": claudeLimits, "renewClaudeLogin": renewClaudeLogin,
-            "limitWarnPercent": limitWarnPercent, "notifyWaiting": notifyWaiting, "waitMinutes": waitMinutes, "pushURL": pushURL, "stallMinutes": stallMinutes, "prices": prices,
+            "limitWarnPercent": limitWarnPercent, "notifyWaiting": notifyWaiting, "waitMinutes": waitMinutes, "pushURL": pushURL, "stallMinutes": stallMinutes,
+            // Only rates the person changed are saved, so a later update to the list prices reaches them.
+            "prices": prices.filter { Config.listPrices[$0.key] != $0.value },
         ]
         if let data = try? JSONSerialization.data(withJSONObject: d, options: [.prettyPrinted, .sortedKeys]) {
             try? data.write(to: Config.file)
@@ -83,8 +101,15 @@ struct Config {
 
     func usd(model: String, _ u: Usage) -> Double {
         let m = model.lowercased()
-        let p = prices.first(where: { $0.key != "default" && m.contains($0.key) })?.value ?? prices["default"] ?? [0, 0, 0, 0]
-        return (Double(u.input) * p[0] + Double(u.cacheW) * p[1] + Double(u.cacheR) * p[2] + Double(u.output) * p[3]) / 1e6
+        let key = prices.keys.filter { $0 != "default" && m.contains($0) }.max { $0.count < $1.count } ?? "default"
+        let p = prices[key] ?? [0, 0, 0, 0]
+        // Two published price steps by prompt size, applied only to the list prices, never to a rate the person set.
+        var inRate = 1.0, outRate = 1.0
+        if prices[key] == Config.listPrices[key] {
+            if key.hasPrefix("haiku") && key != "haiku-4" && u.context > 100_000 { inRate = 5; outRate = 5 }
+            if key.hasPrefix("gpt-6") && u.context > 272_000 { inRate = 2; outRate = 1.5 }
+        }
+        return ((Double(u.input) * p[0] + Double(u.cacheW) * p[1] + Double(u.cacheR) * p[2]) * inRate + Double(u.output) * p[3] * outRate) / 1e6
     }
 }
 

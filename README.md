@@ -18,10 +18,10 @@ costdoctor
 Cost Doctor · last 7 days  (read 212 log files in 3s; nothing left this Mac)
 
 Day          Claude Code      Codex    turns  subagents   ~list price
-2026-11-04          540M      72.0M     2448        25%        $1,285
-2026-11-05          341M      47.0M     1552        19%          $815
+2026-11-04          540M      72.0M     2448        25%          $269
+2026-11-05          341M      47.0M     1552        19%          $171
 ...
-Total               3.1B       534M    14544                   $7,640
+Total               3.1B       534M    14544                   $1,600
 
 Plan limits
   Claude Code 5-hour: 72% used, resets 4:10 PM

@@ -1,6 +1,6 @@
 import Foundation
 
-let version = "1.0.0"
+let version = "1.0.1"
 let appLink = "https://costdoctor.app/?ref=cli"
 let args = Array(CommandLine.arguments.dropFirst())
 
@@ -61,7 +61,7 @@ if isCard {
     let week = snap.week
     if args.contains("--demo") {   // made-up numbers, for the README picture
         let m = [612, 388, 905, 441, 530, 274, 486]
-        let demo = CardStats(days: zip(week, m).map { ($0.day, $1 * 1_000_000) }, tokens: 3_636_000_000, usd: 7_640, turns: 14_544,
+        let demo = CardStats(days: zip(week, m).map { ($0.day, $1 * 1_000_000) }, tokens: 3_636_000_000, usd: 1_600, turns: 14_544,
                              sideTurns: 3_636, claude: 3_102_000_000, codex: 534_000_000)
         if let why = Card.write(demo, to: out) { say(why); exit(1) }
         say("Saved \(out.path)"); exit(0)
