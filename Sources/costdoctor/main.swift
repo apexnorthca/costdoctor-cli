@@ -1,6 +1,6 @@
 import Foundation
 
-let version = "1.0.1"
+let version = "1.0.2"
 let appLink = "https://costdoctor.app/?ref=cli"
 let args = Array(CommandLine.arguments.dropFirst())
 
@@ -81,7 +81,7 @@ if isCard {
 }
 
 say("")
-say("Cost Doctor · last \(month ? 30 : 7) days" + String(format: "  (read %d log files in %.0fs; nothing left this Mac)", scanner.filesRead, Date().timeIntervalSince(t0)))
+say("Cost Doctor · last \(month ? 30 : 7) days" + String(format: "  (read %d log files in %.0fs; nothing uploaded)", scanner.filesRead, Date().timeIntervalSince(t0)))
 say("")
 say("Day          Claude Code      Codex    turns  subagents   ~list price")
 for d in days {

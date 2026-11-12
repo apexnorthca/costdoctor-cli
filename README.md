@@ -15,7 +15,7 @@ costdoctor
 ```
 
 ```
-Cost Doctor · last 7 days  (read 212 log files in 3s; nothing left this Mac)
+Cost Doctor · last 7 days  (read 212 log files in 3s; nothing uploaded)
 
 Day          Claude Code      Codex    turns  subagents   ~list price
 2026-11-04          540M      72.0M     2448        25%          $269
