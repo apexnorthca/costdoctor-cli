@@ -161,17 +161,24 @@ final class LogScanner {
         defer { try? fh.close() }
         do { try fh.seek(toOffset: state.offset) } catch { return }
         var buf = Data()
-        while true {
-            guard let chunk = try? fh.read(upToCount: 1 << 20), !chunk.isEmpty else { break }
-            buf.append(chunk)
-            var start = buf.startIndex
-            while let nl = buf[start...].firstIndex(of: 0x0A) {
-                if codex { handleCodex(line: buf[start..<nl], fileSession: fileSession, state: &state) }
-                else { handle(line: buf[start..<nl], fileSession: fileSession, isSub: isSub, state: &state) }
-                start = nl + 1
+        // Each chunk and each line is read inside its own pool. Without one, everything made while parsing stays
+        // alive until the whole scan ends: a month of heavy logs reached 9.8 GB that way.
+        var more = true
+        while more {
+            autoreleasepool {
+                guard let chunk = try? fh.read(upToCount: 1 << 20), !chunk.isEmpty else { more = false; return }
+                buf.append(chunk)
+                var start = buf.startIndex
+                while let nl = buf[start...].firstIndex(of: 0x0A) {
+                    autoreleasepool {
+                        if codex { handleCodex(line: buf[start..<nl], fileSession: fileSession, state: &state) }
+                        else { handle(line: buf[start..<nl], fileSession: fileSession, isSub: isSub, state: &state) }
+                    }
+                    start = nl + 1
+                }
+                state.offset += UInt64(start - buf.startIndex)
+                buf = Data(buf[start...])
             }
-            state.offset += UInt64(start - buf.startIndex)
-            buf = Data(buf[start...])
         }
     }
 

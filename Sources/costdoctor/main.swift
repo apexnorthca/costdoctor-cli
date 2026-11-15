@@ -1,6 +1,6 @@
 import Foundation
 
-let version = "1.0.2"
+let version = "1.0.3"
 let appLink = "https://costdoctor.app/?ref=cli"
 let args = Array(CommandLine.arguments.dropFirst())
 
